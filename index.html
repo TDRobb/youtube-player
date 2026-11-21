@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple YouTube Player</title>
+<style>
+:root{font-family:system-ui,Arial,sans-serif;color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#101827;color:#f5f7fb}.wrap{max-width:1250px;margin:auto;padding:22px}h1{font-size:1.7rem;margin:0 0 16px}.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}input,button{font:inherit;border-radius:10px;padding:12px;border:1px solid #52617a}input{flex:1;min-width:220px;background:#1e293b;color:white}button{background:#334155;color:white;cursor:pointer}button:hover{background:#475569}button.primary{background:#c51b23;border-color:#c51b23}.layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px}.video{aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}.video iframe{width:100%;height:100%;border:0}.controls{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px;align-items:center}.controls button{min-width:90px}.controls label{display:flex;align-items:center;gap:8px}.controls input{min-width:0;width:110px;padding:0}.side{background:#1e293b;border-radius:12px;padding:16px}.side h2{margin:0 0 10px;font-size:1.2rem}.side p{color:#cbd5e1;font-size:.9rem;line-height:1.5}.side a{color:#9fd0ff}.status{min-height:1.4em;color:#cbd5e1;margin-top:12px;font-size:.9rem}.small{font-size:.85rem;color:#cbd5e1}@media(max-width:850px){.layout{grid-template-columns:1fr}.wrap{padding:12px}}
+</style>
+</head>
+<body><main class="wrap"><h1>Simple YouTube Player</h1>
+<div class="toolbar"><input id="url" aria-label="YouTube video URL" placeholder="Paste a YouTube video link or video ID"><button class="primary" id="load">Load video</button></div>
+<div class="layout"><section><div class="video" id="player"></div><div class="controls"><button id="back">↶ 10 sec</button><button class="primary" id="toggle">▶ Play</button><button id="forward">10 sec ↷</button><label>Volume <input id="volume" type="range" min="0" max="100" value="80"></label><label>Speed <select id="speed" style="padding:10px;background:#334155;color:white;border-radius:8px"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><button id="fullscreen">Full screen</button></div><p class="status" id="status" role="status">Paste a YouTube link and select Load video.</p></section>
+<aside class="side"><h2>Would I Lie To You?</h2><p>Browse the channel's videos on YouTube, then copy a video's link into the box above.</p><p><a href="https://www.youtube.com/@WILTY_TV/videos" target="_blank" rel="noopener noreferrer">Browse Would I Lie To You? videos ↗</a></p><p class="small">This first version uses pasted links, so no YouTube API key is needed. We can add an in-page channel menu later.</p><h2>How to use</h2><p>Choose a video, press Play, or use the large skip, volume and speed controls.</p></aside></div></main>
+<script>
+let player, ready=false;const status=document.getElementById('status');const say=t=>status.textContent=t;
+function videoId(s){s=s.trim();if(/^[a-zA-Z0-9_-]{11}$/.test(s))return s;try{let u=new URL(s);let host=u.hostname.toLowerCase();if(host==='youtu.be'||host==='www.youtu.be')return u.pathname.split('/')[1];if(['youtube.com','www.youtube.com','m.youtube.com','music.youtube.com','youtube-nocookie.com','www.youtube-nocookie.com'].includes(host)){if(u.pathname==='/watch')return u.searchParams.get('v');let m=u.pathname.match(/^\/(?:shorts|embed|live)\/([^/?]+)/);if(m)return m[1];}}catch{}return null}
+function validId(id){return /^[a-zA-Z0-9_-]{11}$/.test(id||'')}
+window.onYouTubeIframeAPIReady=function(){ready=true; say('Ready. Paste a YouTube link and select Load video.');};
+const api=document.createElement('script');api.src='https://www.youtube.com/iframe_api';document.head.appendChild(api);
+function load(){const id=videoId(document.getElementById('url').value);if(!validId(id)){say('Please enter a valid YouTube video URL or 11-character video ID.');return}if(!ready){say('YouTube player is still loading. Please try again shortly.');return}if(player){player.loadVideoById(id)}else{player=new YT.Player('player',{videoId:id,playerVars:{playsinline:1,rel:0},events:{onReady:e=>{e.target.setVolume(+document.getElementById('volume').value);say('Video loaded.');},onStateChange:e=>{document.getElementById('toggle').textContent=e.data===YT.PlayerState.PLAYING?'❚❚ Pause':'▶ Play'},onError:e=>say('YouTube could not play this video (error '+e.data+'). Some videos restrict embedding.')}})}say('Loading video…')}
+document.getElementById('load').onclick=load;document.getElementById('url').addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+function withPlayer(fn){if(!player||typeof player.getPlayerState!=='function'){say('Load a video first.');return}try{fn()}catch{say('Player is not ready yet.')}}
+document.getElementById('toggle').onclick=()=>withPlayer(()=>player.getPlayerState()===YT.PlayerState.PLAYING?player.pauseVideo():player.playVideo());
+document.getElementById('back').onclick=()=>withPlayer(()=>player.seekTo(Math.max(0,player.getCurrentTime()-10),true));
+document.getElementById('forward').onclick=()=>withPlayer(()=>player.seekTo(player.getCurrentTime()+10,true));
+document.getElementById('volume').oninput=e=>withPlayer(()=>player.setVolume(+e.target.value));
+document.getElementById('speed').onchange=e=>withPlayer(()=>player.setPlaybackRate(+e.target.value));
+document.getElementById('fullscreen').onclick=()=>{let el=document.getElementById('player');if(el.requestFullscreen)el.requestFullscreen();else say('Full screen is not supported in this browser.')};
+</script></body></html>
